@@ -7,6 +7,7 @@ pipeline {
     }
 
     stages {
+
         stage('Build Images') {
             steps {
                 sh '''
@@ -20,6 +21,7 @@ pipeline {
             environment {
                 DOCKER_PASS = credentials("DOCKER_HUB_PASS")
             }
+
             steps {
                 sh '''
                 echo $DOCKER_PASS | docker login -u $DOCKER_ID --password-stdin
@@ -33,11 +35,15 @@ pipeline {
             environment {
                 KUBECONFIG = credentials("config")
             }
+
             steps {
                 sh '''
                 mkdir -p .kube
                 cat $KUBECONFIG > .kube/config
-                helm upgrade --install app-dev ./charts --namespace dev --create-namespace
+
+                helm upgrade --install app-dev ./charts \
+                --namespace dev \
+                --create-namespace
                 '''
             }
         }
@@ -46,11 +52,15 @@ pipeline {
             environment {
                 KUBECONFIG = credentials("config")
             }
+
             steps {
                 sh '''
                 mkdir -p .kube
                 cat $KUBECONFIG > .kube/config
-                helm upgrade --install app-qa ./charts --namespace qa --create-namespace
+
+                helm upgrade --install app-qa ./charts \
+                --namespace qa \
+                --create-namespace
                 '''
             }
         }
@@ -59,33 +69,44 @@ pipeline {
             environment {
                 KUBECONFIG = credentials("config")
             }
+
             steps {
                 sh '''
                 mkdir -p .kube
                 cat $KUBECONFIG > .kube/config
-                helm upgrade --install app-staging ./charts --namespace staging --create-namespace
+
+                helm upgrade --install app-staging ./charts \
+                --namespace staging \
+                --create-namespace
                 '''
             }
         }
 
         stage('Deploy Prod') {
-    when {
-        branch 'master'
-    }
-    steps {
-        timeout(time: 15, unit: 'MINUTES') {
-            input message: 'Deploy to production?', ok: 'Yes'
+
+            when {
+                branch 'master'
+            }
+
+            environment {
+                KUBECONFIG = credentials("config")
+            }
+
+            steps {
+
+                timeout(time: 15, unit: 'MINUTES') {
+                    input message: 'Deploy to production?', ok: 'Yes'
+                }
+
+                sh '''
+                mkdir -p .kube
+                cat $KUBECONFIG > .kube/config
+
+                helm upgrade --install app-prod ./charts \
+                --namespace prod \
+                --create-namespace
+                '''
+            }
         }
-
-        sh '''
-        mkdir -p .kube
-        cat $KUBECONFIG > .kube/config
-
-        helm upgrade --install app-prod ./charts \
-        --namespace prod \
-        --create-namespace
-        '''
     }
-}
-            
 }
