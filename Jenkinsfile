@@ -25,6 +25,7 @@ pipeline {
             steps {
                 sh '''
                 echo $DOCKER_PASS | docker login -u $DOCKER_ID --password-stdin
+
                 docker push $DOCKER_ID/movie-service:$TAG
                 docker push $DOCKER_ID/cast-service:$TAG
                 '''
@@ -85,7 +86,9 @@ pipeline {
         stage('Deploy Prod') {
 
             when {
-                branch 'master'
+                expression {
+                    return env.BRANCH_NAME == 'master' || env.GIT_BRANCH == 'origin/master'
+                }
             }
 
             environment {
@@ -107,6 +110,27 @@ pipeline {
                 --create-namespace
                 '''
             }
+        }
+    }
+
+    post {
+
+        success {
+            echo "Pipeline completed successfully"
+        }
+
+        failure {
+            mail to: "YOUR_EMAIL@gmail.com",
+                 subject: "${env.JOB_NAME} - Build #${env.BUILD_ID} FAILED",
+                 body: """
+Pipeline failed.
+
+Job: ${env.JOB_NAME}
+Build Number: ${env.BUILD_ID}
+
+Check console output here:
+${env.BUILD_URL}
+"""
         }
     }
 }
