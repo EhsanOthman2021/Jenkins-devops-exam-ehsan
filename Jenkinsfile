@@ -69,23 +69,23 @@ pipeline {
         }
 
         stage('Deploy Prod') {
-            when {
-                branch 'master'
-            }
-            environment {
-                KUBECONFIG = credentials("config")
-            }
-            steps {
-                timeout(time: 15, unit: 'MINUTES') {
-                    input message: 'Deploy to production?', ok: 'Yes'
-                }
-
-                sh '''
-                mkdir -p .kube
-                cat $KUBECONFIG > .kube/config
-                helm upgrade --install app-prod ./charts --namespace prod --create-namespace
-                '''
-            }
-        }
+    when {
+        branch 'master'
     }
+    steps {
+        timeout(time: 15, unit: 'MINUTES') {
+            input message: 'Deploy to production?', ok: 'Yes'
+        }
+
+        sh '''
+        mkdir -p .kube
+        cat $KUBECONFIG > .kube/config
+
+        helm upgrade --install app-prod ./charts \
+        --namespace prod \
+        --create-namespace
+        '''
+    }
+}
+            
 }
